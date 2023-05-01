@@ -53,7 +53,7 @@ submitBtn.addEventListener('click', async () => {
 
 const ws = new WebSocket(`ws://${location.host}`);
 ws.addEventListener('message', (event) => {
-    const { type, id, votes, proposal } = JSON.parse(event.data);
+    const { type, id, votes, proposal, count } = JSON.parse(event.data);
 
     if (type === 'init') {
         proposal.forEach((p) => {
@@ -67,5 +67,8 @@ ws.addEventListener('message', (event) => {
             const voteText = card.querySelector('.votes');
             voteText.textContent = `Votes: ${votes}`;
         }
+    } else if (type === 'clientCount') {
+        // Add this line to update the client count on the page
+        document.getElementById('client-count').textContent = `Connected clients: ${count}`;
     }
 });

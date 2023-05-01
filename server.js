@@ -45,6 +45,8 @@ app.post('/proposal', async (req, res) => {
 });
 
 wss.on('connection', async (ws) => {
+    wss.clients.forEach((client) => client.send(JSON.stringify({ type: 'clientCount', count: wss.clients.size })));
+
     try {
         const result = await pool.query('SELECT * FROM proposals');
         ws.send(JSON.stringify({ type: 'init', proposals: result.rows }));
@@ -65,6 +67,9 @@ wss.on('connection', async (ws) => {
                     console.error(err);
                 }
             }
+        });
+        ws.on('close', () => {
+            wss.clients.forEach((client) => client.send(JSON.stringify({ type: 'clientCount', count: wss.clients.size })));
         });
     } catch (err) {
         console.error(err);
