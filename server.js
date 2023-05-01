@@ -2,12 +2,22 @@ const express = require('express');
 const WebSocket = require('ws');
 const http = require('http');
 const path = require('path');
+const { Pool } = require('pg');
+const dotenv = require('dotenv');
+
+dotenv.config();
+
+const pool = new Pool({
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+});
 
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
-
-const proposals = [];
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
@@ -16,35 +26,49 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
-app.post('/proposal', (req, res) => {
-    const proposal = { ...req.body, id: proposals.length, votes: 0 };
-    proposals.push(proposal);
-    res.status(201).json(proposal);
+app.post('/proposal', async (req, res) => {
+    const { text } = req.body;
+    try {
+        const result = await pool.query('INSERT INTO proposals (text, votes) VALUES ($1, 0) RETURNING *', [text]);
+        const proposal = result.rows[0];
+        res.status(201).json(proposal);
 
-    wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({ type: 'newProposal', proposal }));
-        }
-    });
+        wss.clients.forEach((client) => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({ type: 'newProposal', proposal }));
+            }
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to insert proposal' });
+    }
 });
 
-wss.on('connection', (ws) => {
-    ws.send(JSON.stringify({ type: 'init', proposals }));
+wss.on('connection', async (ws) => {
+    try {
+        const result = await pool.query('SELECT * FROM proposals');
+        ws.send(JSON.stringify({ type: 'init', proposals: result.rows }));
 
-    ws.on('message', (message) => {
-        const { type, id } = JSON.parse(message);
-        if (type === 'vote') {
-            const proposal = proposals[id];
-            if (proposal) {
-                proposal.votes += 1;
-                wss.clients.forEach((client) => {
-                    if (client.readyState === WebSocket.OPEN) {
-                        client.send(JSON.stringify({ type: 'updateVotes', id, votes: proposal.votes }));
-                    }
-                });
+        ws.on('message', async (message) => {
+            const { type, id } = JSON.parse(message);
+            if (type === 'vote') {
+                try {
+                    const result = await pool.query('UPDATE proposals SET votes = votes + 1 WHERE id = $1 RETURNING votes', [id]);
+                    const votes = result.rows[0].votes;
+
+                    wss.clients.forEach((client) => {
+                        if (client.readyState === WebSocket.OPEN) {
+                            client.send(JSON.stringify({ type: 'updateVotes', id, votes }));
+                        }
+                    });
+                } catch (err) {
+                    console.error(err);
+                }
             }
-        }
-    });
+        });
+    } catch (err) {
+        console.error(err);
+    }
 });
 
 const PORT = process.env.PORT || 3000;
