@@ -60,7 +60,7 @@ wss.on('connection', async (ws) => {
 
                     wss.clients.forEach((client) => {
                         if (client.readyState === WebSocket.OPEN) {
-                            client.send(JSON.stringify({ type: 'updateVotes', id, votes }));
+                            client.send(JSON.stringify({ type: 'updateVotes', id, votes, count: wss.clients.size }));
                         }
                     });
                 } catch (err) {

@@ -16,7 +16,12 @@ function createProposalCard(proposal) {
     const votes = document.createElement('p');
     votes.textContent = `Votes: ${proposal.votes}`;
     votes.className = 'votes';
+    card.dataset.votes = proposal.votes
     card.appendChild(votes);
+
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    card.appendChild(overlay);
 
     const voteBtn = document.createElement('button');
     voteBtn.textContent = 'Vote';
@@ -25,6 +30,7 @@ function createProposalCard(proposal) {
         ws.send(JSON.stringify({ type: 'vote', id: proposal.id }));
     });
     card.appendChild(voteBtn);
+
 
     return card;
 }
@@ -53,22 +59,36 @@ submitBtn.addEventListener('click', async () => {
 
 const ws = new WebSocket(`ws://${location.host}`);
 ws.addEventListener('message', (event) => {
-    const { type, id, votes, proposal, count } = JSON.parse(event.data);
+    const data = JSON.parse(event.data);
+    const type = data.type
 
     if (type === 'init') {
-        proposal.forEach((p) => {
+        data.proposals.forEach((p) => {
             proposalContainer.appendChild(createProposalCard(p));
         });
     } else if (type === 'newProposal') {
-        proposalContainer.appendChild(createProposalCard(proposal));
+        proposalContainer.appendChild(createProposalCard(data.proposal));
     } else if (type === 'updateVotes') {
-        const card = proposalContainer.querySelector(`[data-id="${id}"]`);
+        const card = proposalContainer.querySelector(`[data-id="${data.id}"]`);
         if (card) {
             const voteText = card.querySelector('.votes');
-            voteText.textContent = `Votes: ${votes}`;
+            voteText.textContent = `Votes: ${data.votes}`;
         }
+        checkProposalVotes(data.count);
     } else if (type === 'clientCount') {
-        // Add this line to update the client count on the page
-        document.getElementById('client-count').textContent = `Connected clients: ${count}`;
+        document.getElementById('client-count').textContent = `Connected clients: ${data.count}`;
+        checkProposalVotes(data.count);
     }
 });
+
+function checkProposalVotes(clientCount) {
+    const cards = document.querySelectorAll('.proposal-card');
+    cards.forEach((card) => {
+        const votes = card.dataset.votes
+        if (votes >= clientCount) {
+            card.classList.add("accepted")
+        } else {
+            card.classList.remove("accepted")
+        }
+    });
+}
