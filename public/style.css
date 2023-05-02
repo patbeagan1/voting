@@ -2,6 +2,10 @@
     display: none;
 }
 
+content {
+    padding: 8px;
+}
+
 #new-proposal-btn {
     position: fixed;
     right: 30px;
@@ -39,11 +43,31 @@
 }
 
 .accepted {
-    background-color: rgba(0, 255, 0, 0.5);   
+    background-color: rgba(0, 255, 0, 0.5);
 }
 
 .session-active {
     border: 5px solid red;
+}
+
+header {
+    background-color: #3f51b5;
+    padding: 20px;
+    text-align: center;
+    color: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.session-badge {
+    display: inline-block;
+    font-size: 0.8em;
+    font-weight: bold;
+    margin-bottom: 0.5em;
+    padding: 2px 4px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
 }
 
 .proposal-card {

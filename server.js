@@ -22,8 +22,9 @@ const wss = new WebSocket.Server({ server });
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
+const runtimeId = Math.random().toFixed(3) * 1000000 
 let sessionActive = false
-let sessionId = 1
+let sessionId = runtimeId
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/index.html'));
@@ -64,9 +65,10 @@ wss.on('connection', async (ws) => {
 
         ws.on('message', async (message) => {
 
-            console.log(JSON.parse(message))
+            const data = JSON.parse(message)
 
-            const { type, id } = JSON.parse(message);
+            const { type, id } = data
+
             if (type === 'submit-vote') {
                 try {
 

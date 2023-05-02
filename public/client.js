@@ -12,6 +12,11 @@ function createProposalCard(proposal) {
     card.className = 'proposal-card';
     card.dataset.id = proposal.id;
 
+    const sessionBadge = document.createElement('span')
+    sessionBadge.className = 'session-badge'
+    sessionBadge.textContent = `Session ${proposal.session_id}`
+    card.append(sessionBadge)
+
     const text = document.createElement('p');
     text.textContent = proposal.text;
     card.appendChild(text);
