@@ -23,6 +23,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
 let sessionActive = false
+let sessionId = 1
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/index.html'));
@@ -31,7 +32,10 @@ app.get('/', (req, res) => {
 app.post('/proposal', async (req, res) => {
     const { text } = req.body;
     try {
-        const result = await pool.query('INSERT INTO proposals (text, votes) VALUES ($1, 0) RETURNING *', [text]);
+
+        const sessionClients = wss.clients.size
+        const result = await pool.query('INSERT INTO proposals (text, votes, session_clients, session_id) VALUES ($1, 0, $2, $3) RETURNING *', [text, sessionClients, sessionId])
+
         const proposal = result.rows[0];
         res.status(201).json(proposal);
 
@@ -65,6 +69,15 @@ wss.on('connection', async (ws) => {
             const { type, id } = JSON.parse(message);
             if (type === 'submit-vote') {
                 try {
+
+                    const proposalResult = await pool.query("SELECT * FROM proposals WHERE id = $1", [id])
+                    const proposal = proposalResult.rows[0]
+
+                    if (proposal.session_id !== sessionId) {
+                        console.error("Trying to vote on proposal from old session.")
+                        return
+                    }
+
                     const result = await pool.query('UPDATE proposals SET votes = votes + 1 WHERE id = $1 RETURNING votes', [id]);
                     const votes = result.rows[0].votes;
 
@@ -78,6 +91,9 @@ wss.on('connection', async (ws) => {
                 }
             } else if (type === 'submit-session') {
                 sessionActive = !sessionActive
+                if (sessionActive) {
+                    sessionId++
+                }
                 wss.clients.forEach((client) => client.send(JSON.stringify({ type: 'session-change', sessionActive })));
             }
         });
