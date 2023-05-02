@@ -22,7 +22,7 @@ const wss = new WebSocket.Server({ server });
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
-const runtimeId = Math.random().toFixed(3) * 1000000 
+const runtimeId = Math.random().toFixed(3) * 1000000
 let sessionActive = false
 let sessionId = runtimeId
 
@@ -61,7 +61,13 @@ wss.on('connection', async (ws) => {
 
     try {
         const result = await pool.query('SELECT * FROM proposals');
-        ws.send(JSON.stringify({ type: 'init', proposals: result.rows, sessionActive, count: wss.clients.size }));
+        ws.send(JSON.stringify({
+            type: 'init',
+            proposals: result.rows,
+            sessionActive,
+            sessionId,
+            count: wss.clients.size
+        }));
 
         ws.on('message', async (message) => {
 

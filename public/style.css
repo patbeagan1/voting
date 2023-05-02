@@ -2,8 +2,12 @@
     display: none;
 }
 
-content {
-    padding: 8px;
+.cannot-vote {
+    display: none;
+}
+
+.content {
+    margin: 12px;
 }
 
 #new-proposal-btn {

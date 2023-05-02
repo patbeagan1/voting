@@ -6,11 +6,14 @@ const proposalText = document.getElementById('proposal-text');
 const sessionButton = document.getElementById("session-btn");
 
 let sessionActive = false;
+let sessionId = undefined;
 
 function createProposalCard(proposal) {
     const card = document.createElement('div');
     card.className = 'proposal-card';
     card.dataset.id = proposal.id;
+    card.dataset.votes = proposal.votes
+    card.dataset.sessionId = proposal.session_id
 
     const sessionBadge = document.createElement('span')
     sessionBadge.className = 'session-badge'
@@ -23,13 +26,12 @@ function createProposalCard(proposal) {
 
     const votes = document.createElement('p');
     votes.textContent = `Votes: ${proposal.votes}`;
-    votes.className = 'votes';
-    card.dataset.votes = proposal.votes
+    votes.classList.add('votes')
     card.appendChild(votes);
 
     const voteBtn = document.createElement('button');
     voteBtn.textContent = 'Vote';
-    voteBtn.className = 'vote-btn';
+    voteBtn.classList.add('vote-btn');
     voteBtn.addEventListener('click', () => {
         if (!sessionActive) {
             alert('A session must be active to submit a vote')
@@ -87,7 +89,7 @@ ws.addEventListener('message', (event) => {
         data.proposals.forEach((p) => {
             proposalContainer.appendChild(createProposalCard(p));
         });
-        onSessionChange(data.sessionActive)
+        onSessionChange(data.sessionActive, data.sessionId)
         updateAcceptedProposalHighlighting(data.count)
     } else if (type === 'newProposal') {
         proposalContainer.appendChild(createProposalCard(data.proposal));
@@ -103,24 +105,33 @@ ws.addEventListener('message', (event) => {
         document.getElementById('client-count').textContent = `Connected clients: ${data.count}`;
         updateAcceptedProposalHighlighting(data.count);
     } else if (type === 'session-change') {
-        onSessionChange(data.sessionActive)
+        onSessionChange(data.sessionActive, data.sessionId)
     }
 });
 
-function onSessionChange(newSessionStatus) {
+function onSessionChange(newSessionStatus, newSessionId) {
+    const cards = document.getElementsByClassName('proposal-card')
+    for (card of cards) {
+        if (newSessionId !== card.dataset.sessionId) {
+            card.getElementsByClassName('vote-btn')[0].classList.add('cannot-vote')
+        }
+    }
+    sessionId = newSessionId
     sessionActive = newSessionStatus
+
+    const voteButtons = document.getElementsByClassName('vote-btn')
     if (sessionActive) {
         sessionButton.textContent = "End Session"
         newProposalBtn.classList.remove('hidden')
         document.body.classList.add("session-active")
-        for (button of document.getElementsByClassName('vote-btn')) {
+        for (button of voteButtons) {
             button.classList.remove("hidden")
         }
     } else {
         sessionButton.textContent = "Start Session"
         document.body.classList.remove("session-active")
         newProposalBtn.classList.add('hidden')
-        for (button of document.getElementsByClassName('vote-btn')) {
+        for (button of voteButtons) {
             button.classList.add("hidden")
         }
     }
