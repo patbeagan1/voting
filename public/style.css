@@ -8,6 +8,12 @@
     bottom: 30px;
 }
 
+#session-btn {
+    position: fixed;
+    right: 30px;
+    bottom: 60px;
+}
+
 .modal-container {
     position: fixed;
     top: 0;
@@ -36,6 +42,10 @@
     background-color: rgba(0, 255, 0, 0.5);   
 }
 
+.session-active {
+    border: 5px solid red;
+}
+
 .proposal-card {
     position: relative;
     border: 1px solid black;
@@ -49,16 +59,4 @@
 
 .vote-btn {
     align-self: flex-end;
-}
-
-.overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 255, 0, 0.5);
-    opacity: 0;
-    transition: opacity 0.5s;
-    z-index: -10;
 }

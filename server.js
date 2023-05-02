@@ -22,6 +22,8 @@ const wss = new WebSocket.Server({ server });
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
+let sessionActive = false
+
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/index.html'));
 });
@@ -45,27 +47,38 @@ app.post('/proposal', async (req, res) => {
 });
 
 wss.on('connection', async (ws) => {
+    // if (!sessionActive) {
+    //     ws.close()
+    //     return
+    // }
+
     wss.clients.forEach((client) => client.send(JSON.stringify({ type: 'clientCount', count: wss.clients.size })));
 
     try {
         const result = await pool.query('SELECT * FROM proposals');
-        ws.send(JSON.stringify({ type: 'init', proposals: result.rows }));
+        ws.send(JSON.stringify({ type: 'init', proposals: result.rows, sessionActive, count: wss.clients.size }));
 
         ws.on('message', async (message) => {
+
+            console.log(JSON.parse(message))
+
             const { type, id } = JSON.parse(message);
-            if (type === 'vote') {
+            if (type === 'submit-vote') {
                 try {
                     const result = await pool.query('UPDATE proposals SET votes = votes + 1 WHERE id = $1 RETURNING votes', [id]);
                     const votes = result.rows[0].votes;
 
                     wss.clients.forEach((client) => {
                         if (client.readyState === WebSocket.OPEN) {
-                            client.send(JSON.stringify({ type: 'updateVotes', id, votes, count: wss.clients.size }));
+                            client.send(JSON.stringify({ type: 'vote-change', id, votes, count: wss.clients.size }));
                         }
                     });
                 } catch (err) {
                     console.error(err);
                 }
+            } else if (type === 'submit-session') {
+                sessionActive = !sessionActive
+                wss.clients.forEach((client) => client.send(JSON.stringify({ type: 'session-change', sessionActive })));
             }
         });
         ws.on('close', () => {
