@@ -19,9 +19,10 @@ function createProposalCard(proposal) {
     sessionBadge.className = 'session-badge'
     sessionBadge.textContent = `Session ${proposal.session_id}`
     card.append(sessionBadge)
-
+    
     const text = document.createElement('p');
     text.textContent = proposal.text;
+    text.className = 'proposal-text'
     card.appendChild(text);
 
     const votes = document.createElement('p');
